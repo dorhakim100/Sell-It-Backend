@@ -26,21 +26,41 @@ async function query(filterBy = { txt: '', pageIdx: 0 }) {
     const collection = await dbService.getCollection('item')
     let items = []
 
-    // Calculate skip and limit
+    // Calculate skip and limit for pagination
     const skip = filterBy.pageIdx * PAGE_SIZE
     const limit = PAGE_SIZE
 
-    // Use aggregation for pagination
-    let aggregationPipeline = [
-      { $match: criteria }, // Match items based on your criteria
-      { $sort: sort }, // Sort the items as per your sorting logic
-      { $skip: skip }, // Skip items for pagination
-      { $limit: limit }, // Limit the number of items per page
+    // Aggregation pipeline for items
+    const aggregationPipeline = [
+      { $match: criteria }, // Match items based on criteria
+      { $sort: sort }, // Sort the items
+      { $skip: skip }, // Pagination - skip
+      { $limit: limit }, // Pagination - limit the number of items
+      {
+        $addFields: {
+          // Convert sellingUser.id from string to ObjectId
+          'sellingUser.id': { $toObjectId: '$sellingUser.id' },
+        },
+      },
+      {
+        $lookup: {
+          from: 'user', // The collection to join with
+          localField: 'sellingUser.id', // Field from the "item" collection
+          foreignField: '_id', // Field in the "user" collection (it's an ObjectId)
+          as: 'userDetails', // Name of the field where the matched data will be stored
+        },
+      },
+      {
+        $addFields: {
+          // Extract the first element from the userDetails array
+          userDetails: { $arrayElemAt: ['$userDetails', 0] },
+        },
+      },
     ]
 
+    // Perform the aggregation on the 'item' collection
     items = await collection.aggregate(aggregationPipeline).toArray()
 
-    // Log the fetched items
     return items
   } catch (err) {
     logger.error('Cannot find items', err)
