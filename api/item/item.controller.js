@@ -6,7 +6,9 @@ export async function getItems(req, res) {
     const filterBy = {
       txt: req.query.txt || '',
       categories: req.query.categories || [],
-      pageIdx: req.query.pageIdx || 0,
+      soldBy: req.query.soldBy || '',
+      pageIdx: +req.query.pageIdx || 0,
+      itemsIds: req.query.itemsIds || [],
     }
 
     const items = await itemService.query(filterBy)
@@ -45,9 +47,11 @@ export async function getItemById(req, res) {
 
 export async function addItem(req, res) {
   const { body: item } = req
+  const stringifyImages = item.images
+  const images = JSON.parse(stringifyImages)
 
   try {
-    const addedItem = await itemService.add(item)
+    const addedItem = await itemService.add({ ...item, images })
     res.json(addedItem)
   } catch (err) {
     logger.error('Failed to add item', err)

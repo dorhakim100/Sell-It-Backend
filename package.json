@@ -13,6 +13,7 @@
     "author": "Me",
     "license": "ISC",
     "dependencies": {
+        "@react-native-async-storage/async-storage": "^2.1.1",
         "bcrypt": "^5.0.0",
         "cookie-parser": "^1.4.6",
         "cors": "^2.8.5",

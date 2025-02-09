@@ -33,7 +33,7 @@ async function query(filterBy = { txt: '', pageIdx: 0 }) {
     // Aggregation pipeline for items
     const aggregationPipeline = [
       { $match: criteria }, // Match items based on criteria
-      { $sort: sort }, // Sort the items
+      // { $sort: sort }, // Sort the items
       { $skip: skip }, // Pagination - skip
       { $limit: limit }, // Pagination - limit the number of items
       {
@@ -60,7 +60,7 @@ async function query(filterBy = { txt: '', pageIdx: 0 }) {
 
     // Perform the aggregation on the 'item' collection
     items = await collection.aggregate(aggregationPipeline).toArray()
-
+    console.log(items)
     return items
   } catch (err) {
     logger.error('Cannot find items', err)
@@ -92,10 +92,40 @@ async function getById(itemId) {
   try {
     const criteria = { _id: ObjectId.createFromHexString(itemId) }
 
-    const collection = await dbService.getCollection('item')
-    const item = await collection.findOne(criteria)
+    const aggregationPipeline = [
+      { $match: criteria }, // Match items based on criteria
+      {
+        $addFields: {
+          // Convert sellingUser.id from string to ObjectId
+          'sellingUser.id': { $toObjectId: '$sellingUser.id' },
+        },
+      },
+      {
+        $lookup: {
+          from: 'user', // The collection to join with
+          localField: 'sellingUser.id', // Field from the "item" collection
+          foreignField: '_id', // Field in the "user" collection (it's an ObjectId)
+          as: 'userDetails', // Name of the field where the matched data will be stored
+        },
+      },
+      {
+        $addFields: {
+          // Extract the first element from the userDetails array
+          userDetails: { $arrayElemAt: ['$userDetails', 0] },
+        },
+      },
+    ]
 
-    item.createdAt = item._id.getTimestamp()
+    const collection = await dbService.getCollection('item')
+    const items = await collection.aggregate(aggregationPipeline).toArray()
+
+    if (!items || items.length === 0) {
+      return null // Return null if no item is found
+    }
+
+    const item = items[0]
+    item.createdAt = item._id.getTimestamp() // Add createdAt from _id timestamp
+
     return item
   } catch (err) {
     logger.error(`while finding item ${itemId}`, err)
@@ -126,6 +156,7 @@ async function remove(itemId) {
 
 async function add(item) {
   try {
+    console.log(item)
     const collection = await dbService.getCollection('item')
     await collection.insertOne(item)
 
@@ -189,15 +220,26 @@ function _buildCriteria(filterBy) {
     ],
   }
 
-  if (filterBy.categories.length > 0) {
+  if (filterBy.itemsIds && filterBy.itemsIds.length > 0) {
+    criteria._id = {
+      $in: filterBy.itemsIds.map((id) => ObjectId.createFromHexString(id)),
+    }
+  }
+
+  if (filterBy.categories && filterBy.categories.length > 0) {
     criteria.categories = { $in: filterBy.categories }
+  }
+
+  if (filterBy.soldBy) {
+    criteria['sellingUser.id'] = { $eq: filterBy.soldBy }
   }
 
   return criteria
 }
 
 function _buildSort(filterBy) {
-  const sortField = filterBy.sortField || 'num'
-  const sortDir = filterBy.sortDir || 1
-  return { [sortField]: sortDir }
+  // const sortField = filterBy.sortField || 'num'
+  // const sortDir = filterBy.sortDir || 1
+  // return { [sortField]: sortDir }
+  return {}
 }

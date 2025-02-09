@@ -73,10 +73,16 @@ async function remove(userId) {
 
 async function update(user) {
   try {
+    console.log(user)
     // peek only updatable properties
     const userToSave = {
       _id: ObjectId.createFromHexString(user._id), // needed for the returnd obj
       fullname: user.fullname,
+      image: user.image,
+      items: user.items,
+      phone: user.phone,
+      email: user.email,
+      username: user.username,
     }
     const collection = await dbService.getCollection('user')
     await collection.updateOne({ _id: userToSave._id }, { $set: userToSave })
@@ -97,6 +103,8 @@ async function add(user) {
       isAdmin: user.isAdmin,
       email: user.email,
       phone: user.phone,
+      items: user.items,
+      image: user.image,
     }
     const collection = await dbService.getCollection('user')
     await collection.insertOne(userToAdd)

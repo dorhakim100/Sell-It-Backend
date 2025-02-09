@@ -39,7 +39,16 @@ async function login(username, password) {
   }
 }
 
-async function signup({ username, password, fullname, email, phone, isAdmin }) {
+async function signup({
+  username,
+  password,
+  fullname,
+  email,
+  phone,
+  isAdmin,
+  items,
+  image,
+}) {
   try {
     const saltRounds = 10
 
@@ -64,6 +73,8 @@ async function signup({ username, password, fullname, email, phone, isAdmin }) {
       email,
       phone,
       isAdmin,
+      items,
+      image,
     })
 
     return {
@@ -84,6 +95,9 @@ function getLoginToken(user) {
       isAdmin: user.isAdmin,
       email: user.email,
       phone: user.phone,
+      items: user.items,
+      image: user.image,
+      username: user.username,
     },
     SECRET,
     { expiresIn: '2h' } // Token expires in 2 hours
