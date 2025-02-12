@@ -20,6 +20,7 @@ export const itemService = {
 
 async function query(filterBy = { txt: '', pageIdx: 0 }) {
   try {
+    console.log(filterBy)
     const criteria = _buildCriteria(filterBy)
     const sort = _buildSort(filterBy)
 
@@ -75,6 +76,33 @@ async function getMaxPage(filterBy = { txt: '', pageIdx: 0 }) {
 
     const collection = await dbService.getCollection('item')
     let items = []
+
+    const aggregationPipeline = [
+      { $match: criteria }, // Match items based on criteria
+      // { $sort: sort }, // Sort the items
+      { $skip: skip }, // Pagination - skip
+      { $limit: limit }, // Pagination - limit the number of items
+      {
+        $addFields: {
+          // Convert sellingUser.id from string to ObjectId
+          'sellingUser.id': { $toObjectId: '$sellingUser.id' },
+        },
+      },
+      {
+        $lookup: {
+          from: 'user', // The collection to join with
+          localField: 'sellingUser.id', // Field from the "item" collection
+          foreignField: '_id', // Field in the "user" collection (it's an ObjectId)
+          as: 'userDetails', // Name of the field where the matched data will be stored
+        },
+      },
+      {
+        $addFields: {
+          // Extract the first element from the userDetails array
+          userDetails: { $arrayElemAt: ['$userDetails', 0] },
+        },
+      },
+    ]
 
     items = await collection.aggregate(aggregationPipeline).toArray()
     const itemsLength = items.length

@@ -1,6 +1,7 @@
 import { dbService } from '../../services/db.service.js'
 import { logger } from '../../services/logger.service.js'
 import { ObjectId } from 'mongodb'
+import jwt from 'jsonwebtoken'
 
 export const userService = {
   add, // Create (Signup)
@@ -10,6 +11,8 @@ export const userService = {
   query, // List (of users)
   getByUsername, // Used for Login
 }
+
+const SECRET = process.env.JWT_SECRET || 'Secret-Puk-1234'
 
 async function query(filterBy = {}) {
   const criteria = _buildCriteria(filterBy)
@@ -83,10 +86,12 @@ async function update(user) {
       phone: user.phone,
       email: user.email,
       username: user.username,
+      messages: user.messages,
     }
     const collection = await dbService.getCollection('user')
     await collection.updateOne({ _id: userToSave._id }, { $set: userToSave })
-    return userToSave
+    const token = getLoginToken(userToSave)
+    return token
   } catch (err) {
     logger.error(`cannot update user ${user._id}`, err)
     throw err
@@ -105,6 +110,7 @@ async function add(user) {
       phone: user.phone,
       items: user.items,
       image: user.image,
+      messages: user.messages,
     }
     const collection = await dbService.getCollection('user')
     await collection.insertOne(userToAdd)
@@ -132,4 +138,22 @@ function _buildCriteria(filterBy) {
     criteria.score = { $gte: filterBy.minBalance }
   }
   return criteria
+}
+
+function getLoginToken(user) {
+  return jwt.sign(
+    {
+      _id: user._id,
+      fullname: user.fullname,
+      isAdmin: user.isAdmin,
+      email: user.email,
+      phone: user.phone,
+      items: user.items,
+      image: user.image,
+      username: user.username,
+      messages: user.messages,
+    },
+    SECRET,
+    { expiresIn: '2h' } // Token expires in 2 hours
+  )
 }
