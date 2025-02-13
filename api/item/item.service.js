@@ -20,7 +20,6 @@ export const itemService = {
 
 async function query(filterBy = { txt: '', pageIdx: 0 }) {
   try {
-    console.log(filterBy)
     const criteria = _buildCriteria(filterBy)
     const sort = _buildSort(filterBy)
 
@@ -28,8 +27,9 @@ async function query(filterBy = { txt: '', pageIdx: 0 }) {
     let items = []
 
     // Calculate skip and limit for pagination
-    const skip = filterBy.pageIdx * PAGE_SIZE
-    const limit = PAGE_SIZE
+    const pageSize = PAGE_SIZE
+    const skip = filterBy.pageIdx * pageSize
+    const limit = pageSize
 
     // Aggregation pipeline for items
     const aggregationPipeline = [
@@ -61,7 +61,7 @@ async function query(filterBy = { txt: '', pageIdx: 0 }) {
 
     // Perform the aggregation on the 'item' collection
     items = await collection.aggregate(aggregationPipeline).toArray()
-    console.log(items)
+
     return items
   } catch (err) {
     logger.error('Cannot find items', err)
@@ -184,7 +184,6 @@ async function remove(itemId) {
 
 async function add(item) {
   try {
-    console.log(item)
     const collection = await dbService.getCollection('item')
     await collection.insertOne(item)
 

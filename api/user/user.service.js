@@ -76,7 +76,6 @@ async function remove(userId) {
 
 async function update(user) {
   try {
-    console.log(user)
     // peek only updatable properties
     const userToSave = {
       _id: ObjectId.createFromHexString(user._id), // needed for the returnd obj

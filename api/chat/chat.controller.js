@@ -10,6 +10,8 @@ export async function getChats(req, res) {
       chatsIds: req.query.chatsIds || [],
     }
 
+    console.log(filterBy)
+
     const chats = await chatService.query(filterBy)
     res.json(chats)
   } catch (err) {

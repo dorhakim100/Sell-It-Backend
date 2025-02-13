@@ -24,12 +24,12 @@ async function query(filterBy = { txt: '', pageIdx: 0 }) {
     const sort = _buildSort(filterBy)
 
     const { loggedInUser } = filterBy
-    if (!loggedInUser) return []
 
     const collection = await dbService.getCollection('chat')
     let chats = []
 
     // Calculate skip and limit for pagination
+    // const skip = filterBy.pageIdx * PAGE_SIZE
     const skip = filterBy.pageIdx * PAGE_SIZE
     const limit = PAGE_SIZE
 
@@ -105,7 +105,6 @@ async function query(filterBy = { txt: '', pageIdx: 0 }) {
 
     // Perform the aggregation on the 'item' collection
     chats = await collection.aggregate(aggregationPipeline).toArray()
-    console.log(chats)
     return chats
   } catch (err) {
     logger.error('Cannot find chats', err)
@@ -206,16 +205,12 @@ async function getById(chatId) {
 }
 
 async function remove(chatId) {
-  const { loggedInUser } = asyncLocalStorage.getStore()
-  const { _id: ownerId, isAdmin } = loggedInUser
-
   try {
     const criteria = {
       _id: ObjectId.createFromHexString(chatId),
     }
-    if (!isAdmin) criteria['owner._id'] = ownerId
 
-    const collection = await dbService.getCollection('item')
+    const collection = await dbService.getCollection('chat')
     const res = await collection.deleteOne(criteria)
 
     if (res.deletedCount === 0) throw 'Not your item'
@@ -228,7 +223,6 @@ async function remove(chatId) {
 
 async function add(chat) {
   try {
-    console.log(chat)
     const collection = await dbService.getCollection('chat')
     await collection.insertOne(chat)
 

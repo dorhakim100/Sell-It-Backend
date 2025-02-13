@@ -7,14 +7,16 @@ export async function requireAuth(req, res, next) {
   try {
     // Get the token from the Authorization header or cookie
 
-    const authorizationHeader = req.headers['authorization']
+    const authorizationHeader =
+      req.headers['authorization'] || req.query.headers.Authorization
 
     if (!authorizationHeader) {
       return res.status(401).send('Authorization header missing')
     }
 
-    const token = authorizationHeader.split(' ')[1]
+    // console.log(authorizationHeader)
 
+    const token = authorizationHeader.split(' ')[1]
     // Decode and verify the token
     const decoded = jwtDecode(token)
 
