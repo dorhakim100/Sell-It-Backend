@@ -3,6 +3,7 @@ import { chatService } from './chat.service.js'
 
 export async function getChats(req, res) {
   try {
+    // console.log('works')
     const filterBy = {
       txt: req.query.txt || '',
       loggedInUser: req.query.loggedInUser || '',
@@ -20,15 +21,35 @@ export async function getChats(req, res) {
   }
 }
 export async function getMaxPage(req, res) {
+  console.log('its max page')
   try {
     const filterBy = {
       txt: req.query.txt || '',
-      categories: req.query.categories || [],
-      pageIdx: req.query.pageIdx || 0,
+      loggedInUser: req.query.loggedInUser || '',
+      pageIdx: +req.query.pageIdx || 0,
+      chatsIds: req.query.chatsIds || [],
     }
 
     const max = await chatService.getMaxPage(filterBy)
     res.json(max)
+  } catch (err) {
+    logger.error('Failed to get chats', err)
+    res.status(400).send({ err: 'Failed to get chats' })
+  }
+}
+export async function checkIsChat(req, res) {
+  console.log('its checking time')
+  try {
+    const users = {
+      from: req.query.from || '',
+      to: req.query.to || '',
+    }
+
+    console.log(req.query)
+
+    const isChat = await chatService.checkIsChat(users)
+    console.log('isChat:', isChat)
+    res.json(isChat)
   } catch (err) {
     logger.error('Failed to get chats', err)
     res.status(400).send({ err: 'Failed to get chats' })
@@ -91,14 +112,16 @@ export async function removeChat(req, res) {
 }
 
 export async function addChatMsg(req, res) {
-  const { loggedinUser } = req
-
   try {
-    const chatId = req.params.id
+    const chatId = req.body.chatId
+
     const msg = {
-      txt: req.body.txt,
-      by: loggedinUser,
+      content: req.body.content,
+      from: req.body.from,
+      to: req.body.to,
+      sentAt: req.body.sentAt,
     }
+
     const savedMsg = await chatService.addChatMsg(chatId, msg)
     res.json(savedMsg)
   } catch (err) {

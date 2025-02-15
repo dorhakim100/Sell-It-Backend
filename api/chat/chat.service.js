@@ -11,6 +11,7 @@ export const chatService = {
   remove,
   query,
   getMaxPage,
+  checkIsChat,
   getById,
   add,
   update,
@@ -36,6 +37,7 @@ async function query(filterBy = { txt: '', pageIdx: 0 }) {
     // Aggregation pipeline for chats
     const aggregationPipeline = [
       { $match: criteria }, // Match chats based on criteria
+
       { $skip: skip }, // Pagination - skip
       { $limit: limit }, // Pagination - limit the number of chats
       {
@@ -80,6 +82,8 @@ async function query(filterBy = { txt: '', pageIdx: 0 }) {
           latestMessage: { $arrayElemAt: ['$latestMessage', 0] },
         },
       },
+      { $sort: { 'latestMessage.sentAt': -1 } },
+
       {
         $project: {
           _id: 1,
@@ -117,34 +121,13 @@ async function getMaxPage(filterBy = { txt: '', pageIdx: 0 }) {
     const criteria = _buildCriteria(filterBy)
     const sort = _buildSort(filterBy)
 
-    const collection = await dbService.getCollection('item')
+    const collection = await dbService.getCollection('chat')
     let chats = []
 
     const aggregationPipeline = [
       { $match: criteria }, // Match chats based on criteria
-      // { $sort: sort }, // Sort the chats
-      { $skip: skip }, // Pagination - skip
-      { $limit: limit }, // Pagination - limit the number of chats
-      {
-        $addFields: {
-          // Convert sellingUser.id from string to ObjectId
-          'sellingUser.id': { $toObjectId: '$sellingUser.id' },
-        },
-      },
-      {
-        $lookup: {
-          from: 'user', // The collection to join with
-          localField: 'sellingUser.id', // Field from the "item" collection
-          foreignField: '_id', // Field in the "user" collection (it's an ObjectId)
-          as: 'userDetails', // Name of the field where the matched data will be stored
-        },
-      },
-      {
-        $addFields: {
-          // Extract the first element from the userDetails array
-          userDetails: { $arrayElemAt: ['$userDetails', 0] },
-        },
-      },
+
+      // { $limit: limit }, // Pagination - limit the number of chats
     ]
 
     chats = await collection.aggregate(aggregationPipeline).toArray()
@@ -152,7 +135,31 @@ async function getMaxPage(filterBy = { txt: '', pageIdx: 0 }) {
 
     const max = Math.ceil(itemsLength / PAGE_SIZE)
 
-    return chats
+    return max
+  } catch (err) {
+    logger.error('Cannot find chats', err)
+    throw err
+  }
+}
+async function checkIsChat(users = { from: '', to: '' }) {
+  try {
+    const criteria = {} // getting all chats
+
+    const collection = await dbService.getCollection('chat')
+    let chats = []
+
+    const aggregationPipeline = [
+      { $match: criteria }, // Match chats based on criteria
+    ]
+
+    chats = await collection.aggregate(aggregationPipeline).toArray()
+    console.log(chats)
+    console.log(users)
+    return chats.find(
+      (chat) => chat.users.includes(users.from) && chat.users.includes(users.to)
+    )
+      ? true
+      : false
   } catch (err) {
     logger.error('Cannot find chats', err)
     throw err
@@ -162,40 +169,76 @@ async function getMaxPage(filterBy = { txt: '', pageIdx: 0 }) {
 async function getById(chatId) {
   try {
     const criteria = { _id: ObjectId.createFromHexString(chatId) }
-
+    console.log(chatId)
     const aggregationPipeline = [
       { $match: criteria }, // Match chats based on criteria
+
       {
         $addFields: {
-          // Convert sellingUser.id from string to ObjectId
-          'sellingUser.id': { $toObjectId: '$sellingUser.id' },
+          // Convert each user id in the users array from a string to an ObjectId.
+          users: {
+            $map: {
+              input: '$users',
+              as: 'userId',
+              in: { $toObjectId: '$$userId' },
+            },
+          },
+          messages: {
+            $map: {
+              input: '$messages',
+              as: 'messageId',
+              in: { $toObjectId: '$$messageId' },
+            },
+          },
         },
       },
       {
         $lookup: {
-          from: 'user', // The collection to join with
-          localField: 'sellingUser.id', // Field from the "item" collection
-          foreignField: '_id', // Field in the "user" collection (it's an ObjectId)
-          as: 'userDetails', // Name of the field where the matched data will be stored
+          from: 'user', // The collection to join with for user details
+          localField: 'users', // The converted array of ObjectIds from the chat document
+          foreignField: '_id', // The _id field in the user collection
+          as: 'userDetails', // Output array with the matching user documents
         },
       },
       {
-        $addFields: {
-          // Extract the first element from the userDetails array
-          userDetails: { $arrayElemAt: ['$userDetails', 0] },
+        $lookup: {
+          from: 'message', // The collection to join with for message details
+          localField: 'messages', // The converted latestMessage ObjectId
+          foreignField: '_id', // The _id field in the message collection
+          as: 'messageDetails', // Output array with the matching message document(s)
+        },
+      },
+      {
+        $project: {
+          _id: 1,
+          userDetails: {
+            $map: {
+              input: '$userDetails',
+              as: 'user',
+              in: {
+                _id: '$$user._id',
+                fullname: '$$user.fullname',
+                username: '$$user.username',
+                email: '$$user.email',
+                image: '$$user.image',
+                phone: '$$user.phone',
+              },
+            },
+          },
+          messageDetails: 1,
         },
       },
     ]
 
-    const collection = await dbService.getCollection('item')
+    const collection = await dbService.getCollection('chat')
     const chats = await collection.aggregate(aggregationPipeline).toArray()
-
+    console.log(chats)
     if (!chats || chats.length === 0) {
       return null // Return null if no item is found
     }
 
     const chat = chats[0]
-    chat.createdAt = item._id.getTimestamp() // Add createdAt from _id timestamp
+    chat.createdAt = chat._id.getTimestamp() // Add createdAt from _id timestamp
 
     return chat
   } catch (err) {
@@ -252,10 +295,15 @@ async function update(chat) {
 async function addChatMsg(chatId, msg) {
   try {
     const criteria = { _id: ObjectId.createFromHexString(chatId) }
-    msg.id = makeId()
 
-    const collection = await dbService.getCollection('item')
-    await collection.updateOne(criteria, { $push: { msgs: msg } })
+    const msgCollection = await dbService.getCollection('message')
+    const result = await msgCollection.insertOne(msg)
+
+    const newId = result.insertedId.toString() // This is an ObjectId
+
+    const chatCollection = await dbService.getCollection('chat')
+
+    await chatCollection.updateOne(criteria, { $push: { messages: newId } })
 
     return msg
   } catch (err) {

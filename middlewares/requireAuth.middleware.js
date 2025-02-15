@@ -6,7 +6,7 @@ import { jwtDecode } from 'jwt-decode'
 export async function requireAuth(req, res, next) {
   try {
     // Get the token from the Authorization header or cookie
-
+    console.log('bla')
     const authorizationHeader =
       req.headers['authorization'] || req.query.headers.Authorization
 

@@ -80,8 +80,7 @@ async function getMaxPage(filterBy = { txt: '', pageIdx: 0 }) {
     const aggregationPipeline = [
       { $match: criteria }, // Match items based on criteria
       // { $sort: sort }, // Sort the items
-      { $skip: skip }, // Pagination - skip
-      { $limit: limit }, // Pagination - limit the number of items
+
       {
         $addFields: {
           // Convert sellingUser.id from string to ObjectId

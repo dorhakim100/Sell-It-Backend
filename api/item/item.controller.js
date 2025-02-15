@@ -36,6 +36,7 @@ export async function getMaxPage(req, res) {
 
 export async function getItemById(req, res) {
   try {
+    console.log('bla')
     const itemId = req.params.id
     const item = await itemService.getById(itemId)
     res.json(item)
