@@ -6,7 +6,7 @@ import { jwtDecode } from 'jwt-decode'
 export async function requireAuth(req, res, next) {
   try {
     // Get the token from the Authorization header or cookie
-    console.log('bla')
+
     const authorizationHeader =
       req.headers['authorization'] || req.query.headers.Authorization
 
@@ -30,6 +30,7 @@ export async function requireAuth(req, res, next) {
     }
 
     req.loggedinUser = decoded
+
     next() // Continue to the next middleware
   } catch (error) {
     console.error('Error in requireAuth middleware', error)

@@ -16,7 +16,7 @@ export const chatService = {
   add,
   update,
   addChatMsg,
-  removeChatMsg,
+  removeMessage,
 }
 
 async function query(filterBy = { txt: '', pageIdx: 0 }) {
@@ -260,6 +260,30 @@ async function remove(chatId) {
     return chatId
   } catch (err) {
     logger.error(`cannot remove item ${chatId}`, err)
+    throw err
+  }
+}
+async function removeMessage(messageId, chatId) {
+  try {
+    const criteria = {
+      _id: ObjectId.createFromHexString(messageId),
+    }
+    const chatCriteria = {
+      _id: ObjectId.createFromHexString(chatId),
+    }
+
+    const messageCollection = await dbService.getCollection('message')
+    const messageRes = await messageCollection.deleteOne(criteria)
+
+    const chatCollection = await dbService.getCollection('chat')
+    const chatRes = await chatCollection.updateOne(chatCriteria, {
+      $pull: { messages: messageId },
+    })
+
+    if (messageRes.deletedCount === 0) throw 'Not your item'
+    return messageId
+  } catch (err) {
+    logger.error(`cannot remove item ${messageId}`, err)
     throw err
   }
 }

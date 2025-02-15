@@ -12,6 +12,7 @@ import {
   updateChat,
   removeChat,
   addChatMsg,
+  deleteMessage,
   //   removeItemMsg,
 } from './chat.controller.js'
 
@@ -28,6 +29,7 @@ router.get('/:id', log, getChatById)
 router.post('/', log, addChat)
 router.post('/:id/msg', requireAuth, addChatMsg)
 router.put('/:id', requireAuth, updateChat)
+router.delete('/message/:id', requireAuth, deleteMessage)
 router.delete('/:id', requireAuth, removeChat)
 // router.delete('/:id', requireAuth, requireAdmin, removeChat)
 

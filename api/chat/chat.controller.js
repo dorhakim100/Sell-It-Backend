@@ -110,6 +110,19 @@ export async function removeChat(req, res) {
     res.status(400).send({ err: 'Failed to remove chat' })
   }
 }
+export async function deleteMessage(req, res) {
+  try {
+    const messageId = req.params.id
+    const chatId = req.query.data.chatId
+
+    const removedId = await chatService.removeMessage(messageId, chatId)
+
+    res.send(removedId)
+  } catch (err) {
+    logger.error('Failed to remove message', err)
+    res.status(400).send({ err: 'Failed to remove message' })
+  }
+}
 
 export async function addChatMsg(req, res) {
   try {
