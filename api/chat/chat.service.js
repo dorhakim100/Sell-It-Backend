@@ -153,13 +153,10 @@ async function checkIsChat(users = { from: '', to: '' }) {
     ]
 
     chats = await collection.aggregate(aggregationPipeline).toArray()
-    console.log(chats)
-    console.log(users)
-    return chats.find(
+    const chat = chats.find(
       (chat) => chat.users.includes(users.from) && chat.users.includes(users.to)
     )
-      ? true
-      : false
+    return chat ? chat : false
   } catch (err) {
     logger.error('Cannot find chats', err)
     throw err
@@ -288,12 +285,16 @@ async function removeMessage(messageId, chatId) {
   }
 }
 
-async function add(chat) {
+async function add(users) {
   try {
+    const chatToAdd = {
+      users: [users.from, users.to],
+      messages: [],
+    }
     const collection = await dbService.getCollection('chat')
-    await collection.insertOne(chat)
+    const res = await collection.insertOne(chatToAdd)
 
-    return chat
+    return res.insertedId.toString()
   } catch (err) {
     logger.error('cannot insert chat', err)
     throw err

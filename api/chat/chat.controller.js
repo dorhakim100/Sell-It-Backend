@@ -45,11 +45,9 @@ export async function checkIsChat(req, res) {
       to: req.query.to || '',
     }
 
-    console.log(req.query)
+    const existingChat = await chatService.checkIsChat(users)
 
-    const isChat = await chatService.checkIsChat(users)
-    console.log('isChat:', isChat)
-    res.json(isChat)
+    res.json(existingChat)
   } catch (err) {
     logger.error('Failed to get chats', err)
     res.status(400).send({ err: 'Failed to get chats' })
@@ -68,13 +66,12 @@ export async function getChatById(req, res) {
 }
 
 export async function addChat(req, res) {
-  const { body: chat } = req
-  const stringifyImages = chat.images
-  const images = JSON.parse(stringifyImages)
-
   try {
-    const addedChat = await chatService.add({ ...chat, images })
-    res.json(addedChat)
+    const { from, to } = req.body
+
+    const users = { from, to }
+    const addedChatId = await chatService.add(users)
+    res.json(addedChatId)
   } catch (err) {
     logger.error('Failed to add chat', err)
     res.status(400).send({ err: 'Failed to add chat' })
