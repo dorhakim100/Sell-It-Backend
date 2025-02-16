@@ -1,4 +1,5 @@
 import { ObjectId } from 'mongodb'
+import { Expo } from 'expo-server-sdk'
 
 import { logger } from '../../services/logger.service.js'
 import { makeId } from '../../services/util.service.js'
@@ -6,6 +7,8 @@ import { dbService } from '../../services/db.service.js'
 import { asyncLocalStorage } from '../../services/als.service.js'
 
 const PAGE_SIZE = 3
+
+const expo = new Expo()
 
 export const chatService = {
   remove,
@@ -100,6 +103,7 @@ async function query(filterBy = { txt: '', pageIdx: 0 }) {
                 email: '$$user.email',
                 image: '$$user.image',
                 phone: '$$user.phone',
+                expoPushTokens: '$$user.expoPushTokens',
               },
             },
           },
@@ -163,7 +167,7 @@ async function checkIsChat(users = { from: '', to: '' }) {
   }
 }
 
-async function getById(chatId) {
+async function getById(chatId, userId) {
   try {
     const criteria = { _id: ObjectId.createFromHexString(chatId) }
 
@@ -219,6 +223,7 @@ async function getById(chatId) {
                 email: '$$user.email',
                 image: '$$user.image',
                 phone: '$$user.phone',
+                expoPushTokens: '$$user.expoPushTokens',
               },
             },
           },
@@ -234,7 +239,7 @@ async function getById(chatId) {
       return null // Return null if no item is found
     }
 
-    const chat = await _modifyChatRead(chats[0])
+    const chat = await _modifyChatRead(chats[0], userId)
 
     return chat
   } catch (err) {
@@ -243,7 +248,7 @@ async function getById(chatId) {
   }
 }
 
-async function _modifyChatRead(chat) {
+async function _modifyChatRead(chat, userId) {
   try {
     chat.createdAt = chat._id.getTimestamp() // Add createdAt from _id timestamp
 
@@ -253,24 +258,29 @@ async function _modifyChatRead(chat) {
     if (messageIds.length > 0) {
       const messagesCollection = await dbService.getCollection('message')
 
-      // Update all messages for this chat to set isRead to true
-      await messagesCollection.updateMany(
-        { _id: { $in: messageIds } },
-        { $set: { isRead: true } }
+      // For example, update only the most recent message:
+
+      const modifiedMessages = await Promise.all(
+        chat.messageDetails.map(async (message) => {
+          if (message.to === userId) {
+            await messagesCollection.updateOne(
+              { _id: message._id },
+              { $set: { isRead: true } }
+            )
+            message.isRead = true
+          }
+          return message
+        })
       )
 
-      // Also update the in-memory chat object so that the front-end gets the updated state
-      chat.messageDetails = chat.messageDetails.map((message) => ({
-        ...message,
-        isRead: true,
-      }))
+      chat.messageDetails = [...modifiedMessages]
     }
 
-    chat.latestMessage.isRead = true
+    // if (chat.latestMessage.to === userId) chat.latestMessage.isRead = true
 
     return chat
   } catch (err) {
-    logger.error(`while finding chat ${chatId}`, err)
+    logger.error(`while finding chat ${chat._id}`, err)
     throw err
   }
 }
@@ -361,10 +371,44 @@ async function addChatMsg(chatId, msg) {
 
     await chatCollection.updateOne(criteria, { $push: { messages: newId } })
 
+    const userCollection = await dbService.getCollection('user')
+    const user = await userCollection.findOne({
+      _id: ObjectId.createFromHexString(msg.to),
+    })
+
+    await sendNotification(user.expoPushTokens, msg.content)
+
     return msg
   } catch (err) {
     logger.error(`cannot add item msg ${chatId}`, err)
     throw err
+  }
+}
+
+async function sendNotification(
+  tokens = [],
+  body = '',
+  title = 'New Message',
+  data = {}
+) {
+  const messages = tokens.map((token) => {
+    return {
+      to: token,
+      sound: 'default',
+      title,
+      body,
+      data,
+    }
+  })
+
+  let chunks = expo.chunkPushNotifications(messages)
+  for (const chunk of chunks) {
+    try {
+      const ticketChunk = await expo.sendPushNotificationsAsync(chunk)
+      console.log('Notification tickets:', ticketChunk)
+    } catch (error) {
+      console.error('Error sending notifications:', error)
+    }
   }
 }
 

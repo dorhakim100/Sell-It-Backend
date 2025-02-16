@@ -1,5 +1,6 @@
 import { logger } from '../../services/logger.service.js'
 import { chatService } from './chat.service.js'
+import { jwtDecode } from 'jwt-decode'
 
 export async function getChats(req, res) {
   try {
@@ -11,8 +12,6 @@ export async function getChats(req, res) {
       chatsIds: req.query.chatsIds || [],
     }
 
-    console.log(filterBy)
-
     const chats = await chatService.query(filterBy)
     res.json(chats)
   } catch (err) {
@@ -21,7 +20,6 @@ export async function getChats(req, res) {
   }
 }
 export async function getMaxPage(req, res) {
-  console.log('its max page')
   try {
     const filterBy = {
       txt: req.query.txt || '',
@@ -38,7 +36,6 @@ export async function getMaxPage(req, res) {
   }
 }
 export async function checkIsChat(req, res) {
-  console.log('its checking time')
   try {
     const users = {
       from: req.query.from || '',
@@ -57,7 +54,18 @@ export async function checkIsChat(req, res) {
 export async function getChatById(req, res) {
   try {
     const chatId = req.params.id
-    const chat = await chatService.getById(chatId)
+
+    const authorizationHeader = req.headers['authorization']
+
+    if (!authorizationHeader) {
+      return res.status(401).send('Authorization header missing')
+    }
+
+    const token = authorizationHeader.split(' ')[1]
+
+    const loggedInUser = jwtDecode(token)
+
+    const chat = await chatService.getById(chatId, loggedInUser._id)
     res.json(chat)
   } catch (err) {
     logger.error('Failed to get chat', err)

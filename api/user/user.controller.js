@@ -46,3 +46,14 @@ export async function updateUser(req, res) {
     res.status(400).send({ err: 'Failed to update user' })
   }
 }
+export async function addExpoToken(req, res) {
+  try {
+    const { userId, token } = req.body
+
+    const savedUserToken = await userService.addExpoToken(userId, token)
+    res.send(savedUserToken)
+  } catch (err) {
+    logger.error('Failed to update user', err)
+    res.status(400).send({ err: 'Failed to update user' })
+  }
+}

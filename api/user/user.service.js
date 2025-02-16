@@ -10,6 +10,7 @@ export const userService = {
   remove, // Delete (remove user)
   query, // List (of users)
   getByUsername, // Used for Login
+  addExpoToken,
 }
 
 const SECRET = process.env.JWT_SECRET || 'Secret-Puk-1234'
@@ -90,6 +91,19 @@ async function update(user) {
     const collection = await dbService.getCollection('user')
     await collection.updateOne({ _id: userToSave._id }, { $set: userToSave })
     const token = getLoginToken(userToSave)
+    return token
+  } catch (err) {
+    logger.error(`cannot update user ${user._id}`, err)
+    throw err
+  }
+}
+async function addExpoToken(userId, token) {
+  try {
+    const collection = await dbService.getCollection('user')
+    await collection.updateOne(
+      { _id: ObjectId.createFromHexString(userId) },
+      { $addToSet: { expoPushTokens: token } } // Adds token to array if not already present
+    )
     return token
   } catch (err) {
     logger.error(`cannot update user ${user._id}`, err)

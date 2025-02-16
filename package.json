@@ -18,6 +18,7 @@
         "cookie-parser": "^1.4.6",
         "cors": "^2.8.5",
         "cryptr": "^6.0.3",
+        "expo-server-sdk": "^3.14.0",
         "express": "^4.17.1",
         "jsonwebtoken": "^9.0.2",
         "jwt-decode": "^4.0.0",
