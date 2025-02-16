@@ -166,7 +166,7 @@ async function checkIsChat(users = { from: '', to: '' }) {
 async function getById(chatId) {
   try {
     const criteria = { _id: ObjectId.createFromHexString(chatId) }
-    console.log(chatId)
+
     const aggregationPipeline = [
       { $match: criteria }, // Match chats based on criteria
 
@@ -229,13 +229,44 @@ async function getById(chatId) {
 
     const collection = await dbService.getCollection('chat')
     const chats = await collection.aggregate(aggregationPipeline).toArray()
-    console.log(chats)
+
     if (!chats || chats.length === 0) {
       return null // Return null if no item is found
     }
 
-    const chat = chats[0]
+    const chat = await _modifyChatRead(chats[0])
+
+    return chat
+  } catch (err) {
+    logger.error(`while finding chat ${chatId}`, err)
+    throw err
+  }
+}
+
+async function _modifyChatRead(chat) {
+  try {
     chat.createdAt = chat._id.getTimestamp() // Add createdAt from _id timestamp
+
+    // Extract all message IDs from the aggregated messageDetails
+    const messageIds = chat.messageDetails.map((msg) => msg._id)
+
+    if (messageIds.length > 0) {
+      const messagesCollection = await dbService.getCollection('message')
+
+      // Update all messages for this chat to set isRead to true
+      await messagesCollection.updateMany(
+        { _id: { $in: messageIds } },
+        { $set: { isRead: true } }
+      )
+
+      // Also update the in-memory chat object so that the front-end gets the updated state
+      chat.messageDetails = chat.messageDetails.map((message) => ({
+        ...message,
+        isRead: true,
+      }))
+    }
+
+    chat.latestMessage.isRead = true
 
     return chat
   } catch (err) {
