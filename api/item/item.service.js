@@ -61,7 +61,7 @@ async function query(filterBy = { txt: '', pageIdx: 0 }) {
 
     // Perform the aggregation on the 'item' collection
     items = await collection.aggregate(aggregationPipeline).toArray()
-
+    // console.log(items)
     return items
   } catch (err) {
     logger.error('Cannot find items', err)
@@ -71,6 +71,7 @@ async function query(filterBy = { txt: '', pageIdx: 0 }) {
 
 async function getMaxPage(filterBy = { txt: '', pageIdx: 0 }) {
   try {
+    console.log(filterBy)
     const criteria = _buildCriteria(filterBy)
     const sort = _buildSort(filterBy)
 
@@ -87,20 +88,6 @@ async function getMaxPage(filterBy = { txt: '', pageIdx: 0 }) {
           'sellingUser.id': { $toObjectId: '$sellingUser.id' },
         },
       },
-      {
-        $lookup: {
-          from: 'user', // The collection to join with
-          localField: 'sellingUser.id', // Field from the "item" collection
-          foreignField: '_id', // Field in the "user" collection (it's an ObjectId)
-          as: 'userDetails', // Name of the field where the matched data will be stored
-        },
-      },
-      {
-        $addFields: {
-          // Extract the first element from the userDetails array
-          userDetails: { $arrayElemAt: ['$userDetails', 0] },
-        },
-      },
     ]
 
     items = await collection.aggregate(aggregationPipeline).toArray()
@@ -108,7 +95,7 @@ async function getMaxPage(filterBy = { txt: '', pageIdx: 0 }) {
 
     const max = Math.ceil(itemsLength / PAGE_SIZE)
 
-    return items
+    return max
   } catch (err) {
     logger.error('Cannot find items', err)
     throw err
@@ -246,6 +233,11 @@ function _buildCriteria(filterBy) {
     ],
   }
 
+  if (filterBy.soldBy) {
+    criteria['sellingUser.id'] = { $eq: filterBy.soldBy }
+    return criteria
+  }
+
   if (filterBy.itemsIds && filterBy.itemsIds.length > 0) {
     criteria._id = {
       $in: filterBy.itemsIds.map((id) => ObjectId.createFromHexString(id)),
@@ -254,10 +246,6 @@ function _buildCriteria(filterBy) {
 
   if (filterBy.categories && filterBy.categories.length > 0) {
     criteria.categories = { $in: filterBy.categories }
-  }
-
-  if (filterBy.soldBy) {
-    criteria['sellingUser.id'] = { $eq: filterBy.soldBy }
   }
 
   return criteria

@@ -64,7 +64,8 @@ export async function getChatById(req, res) {
     const token = authorizationHeader.split(' ')[1]
 
     const loggedInUser = jwtDecode(token)
-
+    console.log(chatId)
+    console.log(loggedInUser._id)
     const chat = await chatService.getById(chatId, loggedInUser._id)
     res.json(chat)
   } catch (err) {

@@ -23,7 +23,9 @@ export async function getMaxPage(req, res) {
     const filterBy = {
       txt: req.query.txt || '',
       categories: req.query.categories || [],
-      pageIdx: req.query.pageIdx || 0,
+      soldBy: req.query.soldBy || '',
+      pageIdx: +req.query.pageIdx || 0,
+      itemsIds: req.query.itemsIds || [],
     }
 
     const max = await itemService.getMaxPage(filterBy)
