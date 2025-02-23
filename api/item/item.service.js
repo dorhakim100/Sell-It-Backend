@@ -181,7 +181,8 @@ async function add(item) {
 }
 
 async function update(item) {
-  const itemToSave = { vendor: item.vendor, speed: item.speed }
+  const { label, price, categories, description, images, location } = item
+  const itemToSave = { label, price, categories, description, images, location }
 
   try {
     const criteria = { _id: ObjectId.createFromHexString(item._id) }

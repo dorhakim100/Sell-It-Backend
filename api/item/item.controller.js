@@ -62,14 +62,13 @@ export async function addItem(req, res) {
 }
 
 export async function updateItem(req, res) {
-  const { loggedinUser, body: item } = req
-  const { _id: userId, isAdmin } = loggedinUser
-
-  if (!isAdmin && item.owner._id !== userId) {
-    res.status(403).send('Not your item...')
-    return
-  }
-
+  const { body: item } = req
+  // const stringifyImages = item.images
+  // console.log(stringifyImages)
+  // // return
+  // const images = JSON.parse(stringifyImages)
+  // console.log(images)
+  // return
   try {
     const updatedItem = await itemService.update(item)
     res.json(updatedItem)
