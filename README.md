@@ -58,3 +58,49 @@ Follow these steps to set up your Sell-It backend locally:
    git clone https://github.com/yourusername/sell-it-backend.git
    cd sell-it-backend
    ```
+
+## Screenshots 📸
+
+<div style="display: flex; flex-wrap: wrap; gap: 20px; justify-content: center;">
+
+  <div style="text-align: center;">
+    <strong>Home Screen</strong><br/>
+    <img src="app/assets/imgs/screenshots/home-screen.png" alt="Home Screen" width="300"/>
+  </div>
+
+  <div style="text-align: center;">
+    <strong>Sign-Up Screen</strong><br/>
+    <img src="app/assets/imgs/screenshots/sign-up.png" alt="Sign-Up Screen" width="300"/>
+  </div>
+
+  <div style="text-align: center;">
+    <strong>Explore Screen</strong><br/>
+    <img src="app/assets/imgs/screenshots/explore-screen.png" alt="Explore Screen" width="300"/>
+  </div>
+
+  <div style="text-align: center;">
+    <strong>Item Screen</strong><br/>
+    <img src="app/assets/imgs/screenshots/item-details.png" alt="Item Screen" width="300"/>
+  </div>
+
+  <div style="text-align: center;">
+    <strong>Chats Screen</strong><br/>
+    <img src="app/assets/imgs/screenshots/chats-screen.png" alt="Chats Screen" width="300"/>
+  </div>
+
+  <div style="text-align: center;">
+    <strong>Messaging Screen</strong><br/>
+    <img src="app/assets/imgs/screenshots/chat-details.png" alt="Messaging Screen" width="300"/>
+  </div>
+
+  <div style="text-align: center;">
+    <strong>Add Item Screen</strong><br/>
+    <img src="app/assets/imgs/screenshots/add-screen.png" alt="Add Item Screen" width="300"/>
+  </div>
+
+  <div style="text-align: center;">
+    <strong>Profile Screen</strong><br/>
+    <img src="app/assets/imgs/screenshots/profile.png" alt="Profile Screen" width="300"/>
+  </div>
+
+</div>
